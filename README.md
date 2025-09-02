@@ -1,6 +1,6 @@
-# Gestión de productos - HFTecno
+# Gestión de finanzas - INAC Padua.
 
-Este repositorio contiene el código para `nseries-oc`. Seguí las instrucciones a continuación para configurar y ejecutar el proyecto localmente.
+Este repositorio contiene el código para `inac-finanzas`. Seguí las instrucciones a continuación para configurar y ejecutar el proyecto localmente.
 
 ---
 
@@ -10,12 +10,12 @@ Para obtener una copia del proyecto y ejecutarlo en tu máquina local, seguí es
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://sinaptic.visualstudio.com/Sinaptic.HFTecno/_git/Sinaptic.HFTecno
+git clone https://github.com/leonelwebdev/inac-finanzas
 ```
 
 ### 2. Abrir la carpeta del proyecto
 ```bash
-cd Sinaptic.HFTecno
+cd inac-finanzas
 ```
 
 ### 3. Crear y activar el entorno virtual
@@ -32,6 +32,7 @@ pip install -r requirements.txt
 ### 5. Migrar la base de datos y crear el superusuario (van a ser las credenciales para tu usuario admin de la app, el email no es obligatorio)
 ```bash
 cd lector
+python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
 ```
@@ -42,4 +43,4 @@ python manage.py runserver
 ```
 
 ### 7. Abrir proyecto
-Abrí en la web la siguiente URL: http://127.0.0.1:8000/admin/ e iniciá sesión con tu usuario admin.
+Abrí en la web la siguiente URL: http://127.0.0.1:8000/admin/ e iniciá sesión con tu usuario admin.
