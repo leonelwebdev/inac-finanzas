@@ -1,0 +1,125 @@
+{% extends "admin/change_form.html" %}
+{% load static i18n admin_urls %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/orden_compra.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div id="content" class="orden-compra-page">
+    <!-- <h1 class="page-title">
+        {% if add %}Añadir{% else %}Editar{% endif %} proveedor
+    </h1> -->
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if adminform.form.errors %}
+        <div class="errornote" role="alert" aria-live="assertive">
+            Hay errores en el formulario. Por favor, revisá los campos marcados.
+        </div>
+        {% endif %}
+
+        {% if adminform.form.non_field_errors %}
+        <div class="errorlist nonfield">
+            {% for err in adminform.form.non_field_errors %}
+            <p class="error">{{ err }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Campos principales #}
+        <section class="form-section" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="group-wrapper">
+                <article class="form-group">
+                    {{ adminform.form.nombre.label_tag }}
+                    {{ adminform.form.nombre }}
+                </article>
+    
+                <article class="form-group">
+                    {{ adminform.form.cuit.label_tag }}
+                    {{ adminform.form.cuit }}
+                </article>
+            </div>
+            
+            <div class="group-wrapper">
+                <article class="form-group">
+                    {{ adminform.form.telefono.label_tag }}
+                    {{ adminform.form.telefono }}
+                </article>
+
+                <article class="form-group {% if adminform.form.email.errors %}has-error{% endif %}">
+                    {{ adminform.form.email.label_tag }}
+
+                    {% if adminform.form.email.errors %}
+                        {{ adminform.form.email }}
+                    {% else %}
+                        {{ adminform.form.email }}
+                    {% endif %}
+
+                    {% if adminform.form.email.help_text %}
+                        <small class="help">{{ adminform.form.email.help_text }}</small>
+                    {% endif %}
+                    
+                    {% if adminform.form.email.errors %}
+                        <div id="id_email_error" class="errorlist">
+                        {% for err in adminform.form.email.errors %}
+                            <p class="error">{{ err }}</p>
+                        {% endfor %}
+                        </div>
+                    {% endif %}
+                </article>
+
+                <article class="form-group">
+                    {{ adminform.form.direccion.label_tag }}
+                    {{ adminform.form.direccion }}
+                </article>
+            </div>
+        </section>
+{% endblock %}
+
+{% block footer %}
+        <div class="form-actions">
+              <div>
+                {% if add == False %}
+                  {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+                  <a href="{% add_preserved_filters delete_url %}" class="bg-red-600 cursor-pointer flex items-center justify-center font-medium h-[38px] ml-auto px-3 py-2 rounded-default text-center text-white w-full lg:w-auto dark:bg-red-500/20 dark:text-red-500 btn-delete">
+                      {% translate "Delete" %} {{ opts.verbose_name }}
+                  </a>
+                {% endif %}
+              </div>
+
+                <section class="save-buttons">
+                    <button type="submit" name="_addanother" class="btn-tertiary">Guardar y añadir otro</button>
+                    <button type="submit" name="_continue" class="btn-secondary">Guardar y continuar editando</button>
+                    <button type="submit" name="_save" class="btn-primary">Guardar</button>
+                </section>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const emailInput = document.getElementById('id_email');
+  if (!emailInput) return;
+
+  emailInput.addEventListener('input', function () {
+    const wrap = emailInput.closest('.form-group');
+    if (!wrap) return;
+
+    if (emailInput.validity.valid) {
+      wrap.classList.remove('has-error');
+      emailInput.removeAttribute('aria-invalid');
+    } else {
+      wrap.classList.add('has-error');
+      emailInput.setAttribute('aria-invalid', 'true');
+    }
+  });
+});
+</script>
+{% endblock %}

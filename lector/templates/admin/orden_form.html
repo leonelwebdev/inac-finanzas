@@ -1,0 +1,340 @@
+{% extends "admin/change_form.html" %}
+{% load static i18n admin_urls unfold %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/orden_compra.css' %}">
+  <style>
+    .tabs-nav { display:flex; gap:.25rem; border-bottom:1px solid var(--border, #e5e7eb); }
+    .tabs-nav .tab {
+      appearance:none; background:none; border:none; cursor:pointer;
+      padding: .75rem; font-weight:600; color:#6b7280;
+      border-bottom:2px solid transparent;
+    }
+    .tabs-nav .tab[aria-selected="true"] { color:#111827; border-bottom-color:#258FEB; }
+    .tab-panel { display:none; padding-top:1rem; }
+    .tab-panel.is-active { display:block; }
+
+    html.dark .tabs-nav { border-color: var(--border); }
+    html.dark .tabs-nav .tab[aria-selected="true"] { color:#fff; }
+    html.dark .tabs-nav .tab[aria-selected="false"] { color:#d3d3d3; }
+    html.dark .tab-panel { border-color: var(--border); }
+  </style>
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script src="{% static 'js/lector.js' %}"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div id="content" class="orden-compra-page">
+    <!-- <h1 class="page-title">
+        {% if add %}Añadir{% else %}Editar{% endif %} orden de compra
+    </h1> -->
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        {# === NAV DE PESTAÑAS === #}
+        <div class="tabs">
+            <div class="tabs-nav" role="tablist" aria-label="Orden de compra">
+                <button type="button" id="tab-orden" class="tab" role="tab" aria-selected="true" aria-controls="panel-orden">Orden</button>
+                <button type="button" id="tab-documentos" class="tab" role="tab" aria-selected="false" aria-controls="panel-documentos">Documentos</button>
+            </div>
+
+            {# === PANEL ORDEN === #}
+            <div id="panel-orden" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-orden">
+                {# Campos principales #}
+                <section class="form-section">
+                    <div class="form-group">
+                        {{ adminform.form.nro_oc.label_tag }}
+                        {{ adminform.form.nro_oc }}
+                    </div>
+                    <div class="form-group">
+                        {{ adminform.form.estado.label_tag }}
+                        {{ adminform.form.estado }}
+                    </div>
+                    <div class="form-group">
+                        {{ adminform.form.proveedor.label_tag }}
+                        {{ adminform.form.proveedor }}
+                    </div>
+                </section>
+
+                {# Escaneo en 2do paso o edición #}
+                {% if add == False %}
+                <div class="scan-section">
+                    <h3 id="series-counter" style="font-size: 1rem;">{{ original.series.count }} números de serie</h3>
+                    <input id="barcode-input" type="text" autofocus placeholder="Escaneá o escribí un número de serie">
+                    <ul id="series-list">
+                    {% for serie in original.series.all %}
+                        <li>{{ serie.nro_serie }}</li>
+                    {% endfor %}
+                    </ul>
+                    <script> const ordenId = "{{ original.id|default:'' }}"; </script>
+                </div>
+                {% endif %}
+            </div>
+
+            {# === PANEL DOCUMENTOS === #}
+            <div id="panel-documentos" class="tab-panel" role="tabpanel" aria-labelledby="tab-documentos">
+                {# CARGA / LISTA TEMPORAL #}
+                <section style="display: flex; flex-direction: column;">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; font-weight: 600;">Subir documento</h3>
+                
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="form-section">
+                            <div class="form-group">
+                                {{ adminform.form.doc_nombre.label_tag }}
+                                {{ adminform.form.doc_nombre }}
+                            </div>
+            
+                            <div class="form-group">
+                                {{ adminform.form.doc_tipo.label_tag }}
+                                {{ adminform.form.doc_tipo }}
+                            </div>
+            
+                            <!-- <div class="form-group">
+                                {{ adminform.form.doc_carpeta.label_tag }}
+                                {{ adminform.form.doc_carpeta }}
+                            </div> -->
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-group">
+                                {{ adminform.form.doc_archivo.label_tag }}
+                                <div style="display: flex; flex-direction: row;">
+                                    {{ adminform.form.doc_archivo }}
+                                    <button type="button" id="btn-add-staged" class="text-white rounded-default" style="background-color:#258FEB; width: 100%;">
+                                        Agregar a la lista
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section" style="display: flex; flex-direction: column;">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Documentos a subir</h3>
+                    <div>
+                        <ul id="staged-list" class="docs-list" style="display:flex; flex-direction:column; gap:.5rem;"></ul>
+                        <div id="staged-bank" style="display:none;"></div>
+                    </div>
+                </section>
+
+                {% if add == False %}
+                <section class="form-section" style="display: flex; flex-direction: column;">
+                    <h3 style="font-size:1rem;margin-bottom:.5rem;">Documentos previos</h3>
+                    <ul class="docs-list" style="display:flex; flex-direction:column; gap:.5rem;">
+                        {% for doc in original.documentos.all %}
+                            <li style="display:flex; gap:.5rem; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+                                <span><strong>{{ doc.get_tipo_display }}</strong> — {{ doc.nombre }}</span>
+                                <a class="text-white px-2 py-1 rounded-default" href="{% url 'descargar_sharepoint' doc.pk %}" style="background-color:#258FEB;">Descargar</a>
+                            </li>
+                        {% empty %}
+                            <li>No hay documentos cargados aún.</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+                {% endif %}
+            </div>
+        </div>
+
+        {# --- JS mínimo para gestionar la lista temporal --- #}
+        <script>
+        (function () {
+        const btnAdd = document.getElementById('btn-add-staged');
+        if (!btnAdd) return;
+
+        const bank = document.getElementById('staged-bank');
+        const list = document.getElementById('staged-list');
+
+        // localizadores de campos visibles del form
+        function qSelInput(name) { return document.querySelector('input[name="'+name+'"]'); }
+        function qSel(name) { return document.querySelector('[name="'+name+'"]'); }
+
+        btnAdd.addEventListener('click', function () {
+            const fileInput = qSel('doc_archivo');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            alert('Elegí un archivo primero.');
+            return;
+            }
+            const file = fileInput.files[0];
+
+            const tipo = qSel('doc_tipo')?.value || 'otro';
+            const carpeta = qSelInput('doc_carpeta')?.value?.trim() || '';
+            const nombreManual = qSelInput('doc_nombre')?.value?.trim() || '';
+            const nombre = nombreManual || file.name;
+
+
+
+
+
+
+            // Guardar referencias ANTES de mover el input
+            const container = fileInput.closest('.form-group') || fileInput.parentNode; // lugar visible original
+            const oldId = fileInput.id || 'id_doc_archivo';
+            const labelEl = document.querySelector('label[for="'+oldId+'"]');
+            const existingClass = fileInput.className || '';
+            const existingAccept = fileInput.accept || '';
+
+            // 1) mover el input de archivo al "banco" y renombrarlo para submit múltiple
+            const stagedIdx = Date.now().toString(36) + Math.random().toString(36).slice(2);
+            fileInput.name = 'staged_files';
+            fileInput.dataset.stagedId = stagedIdx;
+            // darle un id único para que el <label> NO lo apunte más
+            fileInput.id = oldId + '__staged_' + stagedIdx;
+            bank.appendChild(fileInput);
+
+            // 2) crear un NUEVO input file limpio y colocarlo en el CONTENEDOR VISIBLE original
+            const fresh = document.createElement('input');
+            fresh.type = 'file';
+            fresh.name = 'doc_archivo';
+            fresh.id = oldId;                        // conservamos el id original
+            fresh.className = existingClass;         // mismo estilo que el original
+            fresh.accept = existingAccept;           // mismo accept (si lo hubiera)
+
+            // Insertar el fresh justo después del <label> (o al comienzo del container)
+            if (labelEl && labelEl.parentNode === container) {
+            // insertar después del label
+            if (labelEl.nextSibling) {
+                container.insertBefore(fresh, labelEl.nextSibling);
+            } else {
+                container.appendChild(fresh);
+            }
+            } else {
+            container.appendChild(fresh);
+            }
+
+            // aseguramos que el label apunte al nuevo input visible
+            if (labelEl) labelEl.htmlFor = oldId;
+
+
+
+
+
+            // 3) inputs ocultos paralelos con metadata (arrays)
+            function hidden(name, value) {
+            const i = document.createElement('input');
+            i.type = 'hidden';
+            i.name = name; // ej: staged_nombre[], staged_tipo[], staged_carpeta[]
+            i.value = value;
+            i.dataset.stagedId = stagedIdx;
+            bank.appendChild(i);
+            return i;
+            }
+            hidden('staged_nombre[]', nombre);
+            hidden('staged_tipo[]', tipo);
+            hidden('staged_carpeta[]', carpeta);
+
+            // 4) pintar en la lista temporal (sin botones de abrir/descargar)
+            const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.gap = '.5rem';
+            li.style.alignItems = 'center';
+            li.style.justifyContent = 'space-between';
+            li.style.flexWrap = 'wrap';
+            li.dataset.stagedId = stagedIdx;
+            li.innerHTML = `
+            <span><strong>${tipo}</strong> — ${nombre}${carpeta ? ' <em style="opacity:.7">('+carpeta+')</em>' : ''}</span>
+            <button type="button" class="bg-red-600 text-white px-2 py-1 rounded-default">Quitar</button>
+            `;
+            li.querySelector('button').addEventListener('click', function () {
+            // eliminar fila y sus inputs ocultos asociados
+            const id = li.dataset.stagedId;
+            // remover el input file real
+            const stagedFile = bank.querySelector('input[type="file"][data-staged-id="'+id+'"]');
+            if (stagedFile) stagedFile.remove();
+            // remover los hidden de metadata
+            bank.querySelectorAll('input[data-staged-id="'+id+'"]').forEach(n => n.remove());
+            // remover la fila visual
+            li.remove();
+            });
+            list.appendChild(li);
+
+            // 5) limpiar campos de texto para el siguiente
+            if (qSelInput('doc_nombre')) qSelInput('doc_nombre').value = '';
+            if (qSelInput('doc_carpeta')) qSelInput('doc_carpeta').value = '';
+        });
+        })();
+        </script>
+
+        <!-- SCRIPT PARA EL CONTADOR DE SERIES -->
+        <script>
+        (function() {
+            const list = document.getElementById("series-list");
+            const counter = document.getElementById("series-counter");
+
+            function updateCounter() {
+                const count = list.querySelectorAll("li").length;
+                counter.textContent = `${count} número${count !== 1 ? 's' : ''} de serie`;
+            }
+
+            // Inicializa al cargar
+            updateCounter();
+
+            // Observa cambios en la lista
+            const observer = new MutationObserver(updateCounter);
+            observer.observe(list, { childList: true });
+
+        })();
+        </script>
+
+
+        <!-- SCRIPT PARA LAS TABS -->
+        <script>
+        (function () {
+        const tabs = [
+            {btn: document.getElementById('tab-orden'), panel: document.getElementById('panel-orden'), key: 'orden'},
+            {btn: document.getElementById('tab-documentos'), panel: document.getElementById('panel-documentos'), key: 'documentos'}
+        ];
+        if (!tabs.every(t => t.btn && t.panel)) return;
+
+        const storageKey = 'oc_tabs_active';
+        function activate(key) {
+            tabs.forEach(t => {
+            const active = (t.key === key);
+            t.btn.setAttribute('aria-selected', active ? 'true' : 'false');
+            t.panel.classList.toggle('is-active', active);
+            });
+            try { localStorage.setItem(storageKey, key); } catch(e) {}
+            // focus conveniente: si volvés a "Orden", foco al scanner si existe
+            if (key === 'orden') {
+            const scan = document.getElementById('barcode-input');
+            if (scan) setTimeout(() => scan.focus(), 50);
+            }
+        }
+
+        tabs.forEach(t => t.btn.addEventListener('click', () => activate(t.key)));
+
+        // restaurar última pestaña elegida
+        let initial = 'orden';
+        try { initial = localStorage.getItem(storageKey) || initial; } catch(e) {}
+        activate(initial);
+        })();
+        </script>
+    <!-- </form>
+</div> -->
+{% endblock %}
+
+{% block footer %}
+        <div class="form-actions">
+              <div>
+                {% if add == False %}
+                  {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+                  <a href="{% add_preserved_filters delete_url %}" class="bg-red-600 cursor-pointer flex items-center justify-center font-medium h-[38px] ml-auto px-3 py-2 rounded-default text-center text-white w-full lg:w-auto dark:bg-red-500/20 dark:text-red-500 btn-delete">
+                      {% translate "Delete" %} {{ opts.verbose_name }}
+                  </a>
+                {% endif %}
+              </div>
+
+                <section class="save-buttons">
+                    <button type="submit" name="_addanother" class="btn-tertiary">Guardar y añadir otro</button>
+                    <button type="submit" name="_continue" class="btn-secondary">Guardar y continuar editando</button>
+                    <button type="submit" name="_save" class="btn-primary">Guardar</button>
+                </section>
+        </div>
+    </form>
+</div>
+{% endblock %}

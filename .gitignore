@@ -1,0 +1,17 @@
+# Entorno virtual
+venv/
+.venv/
+
+# Archivos de sistema/editor
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Archivos generados
+staticfiles/
+media/
+*.sqlite3
+.env

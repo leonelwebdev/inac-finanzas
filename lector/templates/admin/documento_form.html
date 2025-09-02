@@ -1,0 +1,172 @@
+{% extends "admin/change_form.html" %}
+{% load static i18n admin_urls unfold %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/documento.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div id="content" class="orden-compra-page">
+    <!-- <h1 class="page-title">
+        {% if add %}Añadir{% else %}Editar{% endif %} documento
+    </h1> -->
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        {# Campos principales #}
+        <section class="form-section">
+            <div class="form-group">
+                {{ adminform.form.nombre.label_tag }}
+                {{ adminform.form.nombre }}
+            </div>
+
+            <div class="form-group">
+                {{ adminform.form.tipo.label_tag }}
+                {{ adminform.form.tipo }}
+            </div>
+
+            <div class="form-group field-orden">
+                {{ adminform.form.orden.label_tag }}
+                {{ adminform.form.orden }}
+            </div>
+        </section>
+
+        <section>
+            {% if add %}
+                <div class="form-group files">
+                    <div>
+                        <label for="archivo-sharepoint">Archivo para subir a SharePoint</label>
+                        <input type="file" id="archivo-sharepoint" name="archivo" placeholder="Seleccione un archivo" />
+                    </div>
+                    
+                    <button type="button" id="btn-subir-sharepoint" style="background-color: #0364B8; color: white; padding: 8px 12px; border-radius: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <i class="fa-brands fa-microsoft"></i> 
+                        <span id="upload-text">Subir documento a SharePoint</span>
+                        <i id="upload-spinner" class="fa fa-spinner fa-spin" style="display:none"></i>
+                    </button>
+                </div>
+            {% endif %}
+
+            {% if add == False %}
+                <div class="form-group" style="display: flex; justify-content: center; align-self: center;">
+                    <a href="{% url 'descargar_sharepoint' original.pk %}" id="btn-descargar-sharepoint" class="bg-blue-600 cursor-pointer flex items-center justify-center font-medium h-[38px] ml-auto px-3 py-2 rounded-default text-center text-white w-full lg:w-auto">
+                        <i class="fa fa-download" style="margin-right: 1rem;"></i> <span id="download-text">Descargar desde SharePoint</span>
+
+                        <i id="download-spinner" class="fa fa-spinner fa-spin" style="display:none"></i>
+                    </a>
+                </div>
+
+                <div class="form-group">
+            {% endif %}
+        </section>
+    <!-- </form>
+</div> -->
+{% endblock %}
+
+{% block footer %}
+        <div class="form-actions">
+              <div>
+                {% if add == False %}
+                  {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+                  <a href="{% add_preserved_filters delete_url %}" class="bg-red-600 cursor-pointer flex items-center justify-center font-medium h-[38px] ml-auto px-3 py-2 rounded-default text-center text-white w-full lg:w-auto dark:bg-red-500/20 dark:text-red-500 btn-delete">
+                      {% translate "Delete" %} {{ opts.verbose_name }}
+                  </a>
+                {% endif %}
+              </div>
+
+                <section class="save-buttons">
+                    <button type="submit" name="_addanother" class="btn-tertiary">Guardar y añadir otro</button>
+                    <button type="submit" name="_continue" class="btn-secondary">Guardar y continuar editando</button>
+                    <button type="submit" name="_save" class="btn-primary">Guardar</button>
+                </section>
+        </div>
+    </form>
+</div>
+
+<script>
+// SCRIPT SUBIR
+const uploadBtn = document.getElementById("btn-subir-sharepoint");
+const uploadText = document.getElementById("upload-text");
+const uploadSpinner = document.getElementById("upload-spinner");
+
+uploadBtn.addEventListener("click", function() {
+    const fileInput = document.getElementById("archivo-sharepoint");
+    if (!fileInput || !fileInput.files.length) {
+        alert("Primero selecciona un archivo.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("archivo", fileInput.files[0]);
+
+    uploadBtn.disabled = true;
+    uploadText.textContent = "Subiendo...";
+    uploadSpinner.style.display = "inline-block";
+
+    fetch("/subir-a-sharepoint/", {
+        method: "POST",
+        body: formData,
+        headers: { "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert("✅ Subido con éxito a SharePoint");
+        } else {
+            alert("❌ Error al subir: " + (data.error || "Desconocido"));
+        }
+    })
+    .catch(err => {
+        console.error("Error en fetch:", err);
+        alert("❌ Error de conexión.");
+    })
+    .finally(() => {
+        uploadBtn.disabled = false;
+        uploadText.textContent = "Subir documento a SharePoint";
+        uploadSpinner.style.display = "none";
+    });
+});
+
+// SCRIPT DOWNLOAD
+const downloadBtn = document.getElementById("btn-descargar-sharepoint");
+const downloadText = document.getElementById("download-text");
+const downloadSpinner = document.getElementById("download-spinner");
+
+downloadBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    downloadBtn.classList.add("opacity-70", "pointer-events-none");
+    downloadText.textContent = "Descargando...";
+    downloadSpinner.style.display = "inline-block";
+
+    try {
+        const resp = await fetch(downloadBtn.getAttribute("href"));
+        if (!resp.ok) throw new Error("Error en la descarga");
+
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = downloadBtn.getAttribute("href").split("/").pop(); // nombre sugerido
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert("❌ Error en la descarga");
+        console.error(err);
+    } finally {
+        downloadBtn.classList.remove("opacity-70", "pointer-events-none");
+        downloadText.textContent = "Descargar desde SharePoint";
+        downloadSpinner.style.display = "none";
+    }
+});
+</script>
+{% endblock %}

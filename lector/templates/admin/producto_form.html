@@ -1,0 +1,58 @@
+{% extends "admin/change_form.html" %}
+{% load static i18n admin_urls unfold %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/orden_compra.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div id="content" class="orden-compra-page">
+    <!-- <h1 class="page-title">
+        {% if add %}Añadir{% else %}Editar{% endif %} producto
+    </h1> -->
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        {# Campos principales #}
+        <section class="form-section">
+          <div class="form-group">
+            {{ adminform.form.nro_serie.label_tag }}
+            {{ adminform.form.nro_serie }}
+          </div>
+
+          <div class="form-group">
+              {{ adminform.form.orden.label_tag }}
+              {{ adminform.form.orden }}
+          </div>
+        </section>
+    <!-- </form>
+</div> -->
+{% endblock %}
+
+{% block footer %}
+        <div class="form-actions">
+              <div>
+                {% if add == False %}
+                  {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+                  <a href="{% add_preserved_filters delete_url %}" class="bg-red-600 cursor-pointer flex items-center justify-center font-medium h-[38px] ml-auto px-3 py-2 rounded-default text-center text-white w-full lg:w-auto dark:bg-red-500/20 dark:text-red-500 btn-delete">
+                      {% translate "Delete" %} {{ opts.verbose_name }}
+                  </a>
+                {% endif %}
+              </div>
+
+                <section class="save-buttons">
+                    <button type="submit" name="_addanother" class="btn-tertiary">Guardar y añadir otro</button>
+                    <button type="submit" name="_continue" class="btn-secondary">Guardar y continuar editando</button>
+                    <button type="submit" name="_save" class="btn-primary">Guardar</button>
+                </section>
+        </div>
+    </form>
+</div>
+{% endblock %}

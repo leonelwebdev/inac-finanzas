@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load static i18n admin_urls %}
+
+{% block title %}Panel de Métricas{% endblock %}
+
+{% block content %}
+  <h1><span style="margin-right: 8px;">📊</span> Panel de Métricas</h1>
+
+  <div style="display: flex; gap: 16px; margin-top: 20px;">
+    <div style="padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+      <strong>Órdenes Hoy</strong><br>
+      <span style="font-size: 24px;">{{ total_hoy }}</span>
+    </div>
+    <div style="padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+      <strong>Esta Semana</strong><br>
+      <span style="font-size: 24px;">{{ total_semana }}</span>
+    </div>
+    <div style="padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+      <strong>Este Mes</strong><br>
+      <span style="font-size: 24px;">{{ total_mes }}</span>
+    </div>
+  </div>
+{% endblock %}

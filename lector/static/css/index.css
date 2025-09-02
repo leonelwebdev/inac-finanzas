@@ -1,0 +1,17 @@
+div.simplebar-content table#result_list tbody tr td.action-checkbox {
+  background: #d9edff !important;
+}
+
+html.dark div.simplebar-content table#result_list tbody tr td.action-checkbox {
+  background: #258FEB !important;
+}
+
+@media (min-width: 1024px) { /* sm */
+  div.simplebar-content table#result_list tbody tr td.action-checkbox {
+    background: transparent !important;
+  }
+
+  html.dark div.simplebar-content table#result_list tbody tr td.action-checkbox {
+    background: transparent !important;
+  }
+}
