@@ -27,7 +27,7 @@ SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=False)
-ALLOWED_HOSTS = [".azurewebsites.net", "127.0.0.1", "localhost", ".sinaptic.site", "192.168.1.53", "onrender.com"]
+ALLOWED_HOSTS = [".azurewebsites.net", "127.0.0.1", "localhost", ".sinaptic.site", "192.168.1.53", ".onrender.com"]
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=ALLOWED_HOSTS)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_DOMAIN = None
